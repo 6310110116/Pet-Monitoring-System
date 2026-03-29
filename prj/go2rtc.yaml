@@ -1,0 +1,36 @@
+# go2rtc config for Pet Monitoring
+api:
+  listen: ":1984"
+
+rtsp:
+  listen: ":8554"
+
+webrtc:
+  listen: ":8555"
+  candidates:
+    - 1.46.10.130:8555
+  ice_servers:
+    - urls:
+        - stun:stun.l.google.com:19302
+
+streams:
+  room2_0:
+    - rtsp://admin:12345678@192.168.43.184:10554/tcp/av0_0
+    - rtsp://admin:12345678@192.168.43.184:10554/tcp/av0_1
+    - rtsp://admin:12345678@192.168.43.184:10554/udp/av0_0
+    - rtsp://admin:12345678@192.168.43.184:10554/udp/av0_1
+  hall_0:
+    - rtsp://admin:12345678@192.168.43.107:10554/tcp/av0_0
+    - rtsp://admin:12345678@192.168.43.107:10554/tcp/av0_1
+    - rtsp://admin:12345678@192.168.43.107:10554/tcp/av0_0
+    - rtsp://admin:12345678@192.168.43.107:10554/udp/av0_1
+  kitchen_0:
+    - rtsp://admin:12345678@192.168.43.76:10554/tcp/av0_0
+    - rtsp://admin:12345678@192.168.43.76:10554/tcp/av0_1
+    - rtsp://admin:12345678@192.168.43.76:10554/udp/av0_0
+    - rtsp://admin:12345678@192.168.43.76:10554/udp/av0_1
+  room1_0:
+    - rtsp://admin:12345678@192.168.43.45:10554/tcp/av0_0
+    - rtsp://admin:12345678@192.168.43.45:10554/tcp/av0_1
+    - rtsp://admin:12345678@192.168.43.45:10554/udp/av0_0
+    - rtsp://admin:12345678@192.168.43.45:10554/udp/av0_1

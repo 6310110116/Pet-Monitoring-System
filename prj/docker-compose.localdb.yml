@@ -1,0 +1,101 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: petmon_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-pet_monitoring}
+      TZ: Asia/Bangkok
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    container_name: petmon_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      go2rtc:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8080
+      FLASK_DEBUG: ${FLASK_DEBUG:-0}
+      DISABLE_IN_APP_SCHEDULER: 1
+
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      DB_NAME: ${DB_NAME:-pet_monitoring}
+
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@example.com}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
+
+      STREAM_PROVIDER: ${STREAM_PROVIDER:-go2rtc}
+      GO2RTC_BASE_URL: ${GO2RTC_BASE_URL:-http://go2rtc:1984}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      - ./:/app
+      - ./Colorcat/uploads:/app/Colorcat/uploads
+      - ./vapid_keys.json:/app/vapid_keys.json
+    command: sh -c "gunicorn -w 1 -k gthread -b 0.0.0.0:8080 --timeout 0 --graceful-timeout 30 --keep-alive 75 --access-logfile - --error-logfile - app:app"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  worker:
+    build: .
+    container_name: petmon_worker
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DISABLE_IN_APP_SCHEDULER: 1
+
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      DB_NAME: ${DB_NAME:-pet_monitoring}
+
+      REALTIME_ALERT_INTERVAL_SECONDS: ${REALTIME_ALERT_INTERVAL_SECONDS:-60}
+      DAILY_ALERT_HOUR: ${DAILY_ALERT_HOUR:-23}
+      DAILY_ALERT_MINUTE: ${DAILY_ALERT_MINUTE:-59}
+    volumes:
+      - ./:/app
+      - ./Colorcat/uploads:/app/Colorcat/uploads
+      - ./vapid_keys.json:/app/vapid_keys.json
+    command: sh -c "python worker.py"
+
+  go2rtc:
+    image: alexxit/go2rtc:latest
+    container_name: petmon_go2rtc
+    restart: unless-stopped
+    ports:
+      - "8554:8554"
+      - "8555:8555/tcp"
+      - "8555:8555/udp"
+    volumes:
+      - ./go2rtc.yaml:/config/go2rtc.yaml:ro
+
+volumes:
+  db_data:

@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Pet Monitoring System</title>
+  <link href="/style.css?v=20260316_camfix5" rel="stylesheet" type="text/css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="hamburger-menu">
+      <button class="hamburger-btn" onclick="toggleMenu()">☰</button>
+    </div>
+    <h1 class="navbar-title">Pet Monitoring System</h1>
+  </nav>
+
+  <!-- Slide Menu -->
+  <div id="menuOverlay" class="menu-overlay" onclick="closeMenu()"></div>
+  <div id="navMenu" class="nav-dropdown hidden">
+    <button class="nav-item" onclick="showHomePage(); closeMenu()">🏠 Home</button>
+    <button class="nav-item" onclick="showCatPage(); closeMenu()">🐱 Cat</button>
+    <button class="nav-item" onclick="showNotificationsPage(); closeMenu()">🔔 Notifications</button>
+    <!-- Admin-only menu (hidden for normal users) -->
+    <button id="adminPanelBtn" class="nav-item hidden" onclick="goAdminPanel(); closeMenu()">🛠️ Admin Panel</button>
+    <button class="nav-item" onclick="showProfilePage(); closeMenu()">👤 Profile</button>
+  </div>
+
+  <!-- หน้า Home -->
+  <div id="homePage" class="page home-page">
+    <div class="room-grid"></div>
+  </div>
+
+  <!-- หน้าแสดงกล้องเดี่ยว -->
+  <div id="cameraPage" class="page hidden">
+    <div class="camera-header">
+      <button class="back-btn" onclick="goBack()"><span class="btn-icon" aria-hidden="true">←</span><span class="btn-label">ย้อนกลับ</span></button>
+      <h2 id="currentRoomName">Hall</h2>
+    </div>
+    <div class="camera-container">
+      <div class="video-wrapper">
+        <!-- Fullscreen button (YouTube-like) -->
+        <button id="fullscreenBtn" class="fullscreen-btn" type="button" onclick="toggleCameraFullscreen()" aria-label="Fullscreen">⛶</button>
+        <div id="cameraFeed" class="camera-feed">
+          <div class="simulated-video">
+            <div class="camera-placeholder large">📹</div>
+            <p>สถานะ: กำลังบันทึก</p>
+            <p id="timestamp"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="camera-controls">
+        <button class="nav-btn" onclick="previousCamera()">← ก่อนหน้า</button>
+        <span id="cameraInfo">กล้อง 1 จาก 4</span>
+        <button class="nav-btn" onclick="nextCamera()">ถัดไป →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- หน้า Cat Gallery -->
+  <div id="catPage" class="page hidden">
+    <div class="camera-header">
+      <button class="back-btn" onclick="showHomePage()"><span class="btn-icon" aria-hidden="true">←</span><span class="btn-label">ย้อนกลับ</span></button>
+      <h2>Cat</h2>
+      <button class="settings-btn" onclick="openCatSettings()" title="ตั้งค่าแมวที่แสดง"><span class="btn-icon" aria-hidden="true">⚙️</span><span class="btn-label">ตั้งค่าแมว</span></button>
+    </div>
+
+    <!-- Cat Visibility Settings Modal -->
+    <div id="catSettingsOverlay" class="modal-overlay hidden" onclick="closeCatSettings()"></div>
+    <div id="catSettingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="catSettingsTitle">
+      <div class="modal-header">
+        <h3 id="catSettingsTitle">ตั้งค่าแมวที่จะแสดง</h3>
+        <button class="modal-close" onclick="closeCatSettings()" aria-label="Close">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-actions-row">
+          <button class="small-btn" onclick="toggleAllCatSettings(true)">เลือกทั้งหมด</button>
+          <button class="small-btn gray" onclick="toggleAllCatSettings(false)">ล้างทั้งหมด</button>
+        </div>
+
+        <div id="catSettingsList" class="cat-settings-list">
+          <div class="cat-settings-empty">กำลังโหลด...</div>
+        </div>
+        <div class="cat-settings-hint">* แมวที่ไม่ถูกเลือกจะถูกซ่อนไว้ในหน้า Cat เท่านั้น</div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="config-btn cancel-btn" onclick="closeCatSettings()">ยกเลิก</button>
+        <button class="config-btn save-btn" onclick="saveCatSettings()">บันทึก</button>
+      </div>
+    </div>
+
+    <div class="cat-gallery">
+      <div class="cat-grid">
+        <div class="cat-card" onclick="selectCat(0)">
+          <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=300&h=300&fit=crop" alt="Orange Cat"
+            class="cat-image">
+          <h3>Orange</h3>
+        </div>
+        <div class="cat-card" onclick="selectCat(1)">
+          <img src="https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=300&h=300&fit=crop" alt="Gray Cat"
+            class="cat-image">
+          <h3>Gray</h3>
+        </div>
+        <div class="cat-card" onclick="selectCat(2)">
+          <img src="https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=300&h=300&fit=crop" alt="White Cat"
+            class="cat-image">
+          <h3>White</h3>
+        </div>
+        <div class="cat-card" onclick="selectCat(3)">
+          <img src="https://images.unsplash.com/photo-1596854407944-bf87f6fdd49e?w=300&h=300&fit=crop" alt="Black Cat"
+            class="cat-image">
+          <h3>Black</h3>
+        </div>
+        <div class="cat-card" onclick="selectCat(4)">
+          <img src="https://images.unsplash.com/photo-1574158622682-e40e69881006?w=300&h=300&fit=crop"
+            alt="Striped Cat" class="cat-image">
+          <h3>Striped</h3>
+        </div>
+        <div class="cat-card" onclick="selectCat(5)">
+          <img src="https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=300&h=300&fit=crop"
+            alt="Calico Cat" class="cat-image">
+          <h3>Calico</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- หน้า Cat Detail -->
+  <div id="catDetailPage" class="page hidden">
+    <div class="camera-header">
+      <button class="back-btn" onclick="goBackToCatGallery()"><span class="btn-icon" aria-hidden="true">←</span><span class="btn-label">ย้อนกลับ</span></button>
+      <h2 id="catDetailName">Cat Name</h2>
+      <button class="settings-btn" onclick="openCatEditModal()" title="แก้ไขชื่อและรูปแมว"><span class="btn-icon" aria-hidden="true">✏️</span><span class="btn-label">แก้ไข</span></button>
+    </div>
+    <div class="cat-detail-container">
+      <div class="cat-profile">
+        <img id="catDetailImage" src="" alt="Cat Photo" class="cat-detail-image">
+        <div class="cat-info">
+          <h2 id="catProfileName">Name</h2>
+          <p><strong>Location:</strong> <span id="catLocation">Unknown</span></p>
+        </div>
+      </div>
+
+      <div class="cat-actions">
+        <button class="action-btn" onclick="showCatStatisticsPage()">📊 Statistics</button>
+        <button class="action-btn" onclick="showAlertsPage()">🚨 Alerts</button>
+        <button class="action-btn" onclick="showTimelinePage()">⏱️ Timeline</button>
+      </div>
+    </div>
+  </div>
+
+	  <!-- Cat Edit Modal (edit name + upload image) -->
+  <div id="catEditOverlay" class="modal-overlay hidden" onclick="closeCatEditModal()"></div>
+  <div id="catEditModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="catEditTitle">
+    <div class="modal-header">
+      <h3 id="catEditTitle">แก้ไขข้อมูลแมว</h3>
+      <button class="modal-close" onclick="closeCatEditModal()" aria-label="Close">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="edit-cat-preview">
+        <!-- <img id="catEditPreviewImg" src="" alt="Preview" class="cat-settings-thumb" /> -->
+        <div class="edit-cat-preview-text">
+          <div class="edit-cat-preview-name" id="catEditPreviewName">-</div>
+          <div class="edit-cat-preview-hint"></div>
+        </div>
+      </div>
+
+      <div class="config-grid" style="grid-template-columns: 1fr; gap: 16px;">
+	        <div class="config-item" style="margin:0;">
+          <div class="config-label">
+            <span class="label-icon">🏷️</span>
+            <span class="label-text">ชื่อแมว</span>
+          </div>
+          <div class="config-input-wrapper">
+            <input id="catEditNameInput" class="config-input" type="text" placeholder="กรอกชื่อแมวใหม่">
+          </div>
+        </div>
+
+	        <div class="config-item" style="margin:0;">
+          <div class="config-label">
+            <span class="label-icon">🖼️</span>
+	            <span class="label-text">กดเพื่อแนบรูปภาพ</span>
+          </div>
+          <div class="config-input-wrapper">
+	            <input id="catEditFileInput" class="config-input" type="file" accept="image/*" onchange="updateCatEditPreview()">
+          </div>
+	          <div class="cat-settings-hint" style="margin-top:8px;">
+	           
+	          </div>
+          <div class="edit-cat-actions">
+            <button class="small-btn gray" type="button" onclick="resetCatRealImage()">รีเซ็ทรูปกลับรูปพื้นฐาน</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="config-btn cancel-btn" onclick="closeCatEditModal()">ยกเลิก</button>
+      <button class="config-btn save-btn" onclick="saveCatEdit()">บันทึก</button>
+    </div>
+  </div>
+
+  <!-- หน้า Statistics -->
+  <div id="statisticsPage" class="page hidden">
+    <div class="camera-header">
+      <button class="back-btn" onclick="goBackFromStatistics()"><span class="btn-icon" aria-hidden="true">←</span><span class="btn-label">ย้อนกลับ</span></button>
+      <h2 id="statisticsTitle">Statistics</h2>
+    </div>
+    <div class="statistics-container">
+      <div class="stats-header">
+        <div class="cat-selector">
+          <select id="catSelect" class="cat-dropdown" onchange="updateStatistics()">
+            <option value="0">Orange</option>
+            <option value="1">Gray</option>
+            <option value="2">White</option>
+            <option value="3">Black</option>
+            <option value="4">Striped</option>
+            <option value="5">Calico</option>
+          </select>
+        </div>
+
+        <!-- Date Filters: รองรับ daily / monthly / yearly / range -->
+        <div class="date-filters">
+          <select id="periodSelect" class="period-dropdown" onchange="updateDateFilter()">
+            <option value="daily">รายวัน</option>
+            <option value="monthly">รายเดือน</option>
+            <option value="yearly">รายปี</option>
+            <option value="range">เลือกช่วงเวลาเอง</option>
+          </select>
+
+          <select id="yearStartSelect" class="year-dropdown hidden"></select>
+
+          <select id="yearSelect" class="year-dropdown">
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+          </select>
+
+          <select id="monthSelect" class="month-dropdown">
+            <option value="01">มกราคม</option>
+            <option value="02">กุมภาพันธ์</option>
+            <option value="03">มีนาคม</option>
+            <option value="04">เมษายน</option>
+            <option value="05">พฤษภาคม</option>
+            <option value="06">มิถุนายน</option>
+            <option value="07">กรกฎาคม</option>
+            <option value="08">สิงหาคม</option>
+            <option value="09">กันยายน</option>
+            <option value="10">ตุลาคม</option>
+            <option value="11">พฤศจิกายน</option>
+            <option value="12">ธันวาคม</option>
+          </select>
+
+          <div id="dateRangeWrapper" class="date-range-wrapper hidden">
+            <input type="text" id="dateRange" class="date-input" placeholder="dd/mm/yyyy - dd/mm/yyyy" inputmode="numeric" autocomplete="off">
+            <button type="button" class="calendar-btn" onclick="openDateRangePicker()" aria-label="Open calendar">📅</button>
+          </div>
+
+          <button class="search-btn" onclick="searchStatistics()">ค้นหา</button>
+        </div>
+      </div>
+
+      <div class="stats-content"></div>
+
+      <div class="stats-chart-container">
+        <canvas id="statsChart" class="stats-chart"></canvas>
+      </div>
+
+      <!-- ✅ ตัด Sleep ออก เหลือ Eat + Excrete -->
+      <div class="stats-summary">
+        <div class="summary-cards">
+          <div class="summary-card">
+            <div class="card-icon">🍽️</div>
+            <div class="card-content">
+              <h3>จำนวนครั้งที่กิน</h3>
+              <p id="eatTime">0 ครั้ง</p>
+            </div>
+          </div>
+          <div class="summary-card">
+            <div class="card-icon">🚽</div>
+            <div class="card-content">
+              <h3>จำนวนครั้งที่ขับถ่าย</h3>
+              <p id="excreteTime">0 ครั้ง</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- หน้า Timeline (10s slots) -->
+  <div id="timelinePage" class="page hidden">
+    <div class="camera-header">
+      <button class="back-btn" onclick="goBackFromTimeline()"><span class="btn-icon" aria-hidden="true">←</span><span class="btn-label">ย้อนกลับ</span></button>
+      <h2 id="timelineTitle">Timeline</h2>
+    </div>
+
+    <div class="timeline-container">
+      <div class="timeline-toolbar">
+        <label class="timeline-label">
+          วันที่:
+          <input type="date" id="timelineDate" class="date-input">
+        </label>
+
+        <label class="timeline-label">
+          แสดงแบบ:
+          <select id="timelineGranularity" class="filter-select">
+            <option value="10s">10 วินาที</option>
+            <option value="1h">1 ชั่วโมง</option>
+          </select>
+        </label>
+
+        <button class="search-btn" onclick="reloadTimeline()">โหลด</button>
+
+        <label class="timeline-label timeline-toggle">
+          <input type="checkbox" id="timelineAutoRefresh" checked>
+          Auto refresh
+        </label>
+      </div>
+
+      <div id="timelineMeta" class="timeline-meta">-</div>
+
+      <!-- 10s view (vertical scroll) -->
+      <div id="timelineList" class="timeline-list"></div>
+
+      <!-- 1h view (table grid) -->
+      <div id="timelineTableWrap" class="timeline-table-wrap hidden">
+        <div class="timeline-table-hint">
+          <span>ตารางรายชั่วโมง (00-23)</span>
+          <span class="hint-muted">* ใช้การเลื่อนซ้าย–ขวาเพื่อดูทุกชั่วโมง</span>
+        </div>
+        <div class="timeline-table-scroll">
+          <table id="timelineTable" class="timeline-table"></table>
+        </div>
+      </div>
+
+      <div id="timelineLoading" class="timeline-loading hidden">กำลังโหลด...</div>
+      <div id="timelineEnd" class="timeline-end hidden">ถึงข้อมูลเก่าสุดของวันนี้แล้ว</div>
+    </div>
+  </div>
+
+  <!-- หน้า Alerts -->
+  <div id="alertsPage" class="page hidden">
+    <div class="camera-header">
+      <button class="back-btn" onclick="goBackFromAlerts()"><span class="btn-icon" aria-hidden="true">←</span><span class="btn-label">ย้อนกลับ</span></button>
+      <h2>Alerts Page</h2>
+    </div>
+
+    <div class="alerts-sortbar">
+      <label for="alertsSortOrder">เรียงลำดับ:</label>
+      <select id="alertsSortOrder" aria-label="เรียงลำดับ Alerts">
+        <option value="newest" selected>ใหม่สุด</option>
+        <option value="oldest">เก่าสุด</option>
+      </select>
+    </div>
+
+    <div class="alerts-container">
+      <div id="alertsList" class="alerts-list"></div>
+    </div>
+  </div>
+
+
+  <!-- หน้า Notifications -->
+  <div id="notificationsPage" class="page hidden">
+    <div class="camera-header">
+      <button class="back-btn" onclick="showHomePage()"><span class="btn-icon" aria-hidden="true">←</span><span class="btn-label">ย้อนกลับ</span></button>
+      <h2>Notifications</h2>
+    </div>
+
+    <div class="notifications-container">
+      <div id="notificationsList" class="notifications-list"></div>
+    </div>
+  </div>
+
+<!-- หน้า Notification Settings -->
+<div id="notificationSettingsPage" class="page hidden">
+  <div class="camera-header">
+    <button class="back-btn" onclick="showProfilePage()"><span class="btn-icon" aria-hidden="true">←</span><span class="btn-label">ย้อนกลับ</span></button>
+    <h2>Notification Settings</h2>
+  </div>
+
+  <!-- LINE Notify (Messaging API Bot) -->
+  <div class="notifications-push-card" style="margin-top:14px;">
+    <div class="push-title">💚 แจ้งเตือนผ่าน LINE</div>
+    <div class="push-desc">
+      วิธีเชื่อมต่อ: (1) กด “สร้างรหัสเชื่อมต่อ” (2) แอดไลน์บอท (3) ส่งรหัสไปที่แชทบอทเพื่อยืนยัน
+    </div>
+
+    <div class="push-row">
+      <span id="lineStatus" class="push-status">สถานะ: ยังไม่ได้ตรวจสอบ</span>
+    </div>
+
+    <div id="lineOALinkWrap" class="push-row" style="display:none;">
+      <a id="lineOALink" href="#" target="_blank" rel="noopener" class="small-btn" style="text-decoration:none;">➕ แอดไลน์บอท</a>
+    </div>
+
+    <div class="push-row" style="gap:8px; flex-wrap:wrap;">
+      <button class="config-btn save-btn" onclick="generateLineLinkCode()">สร้างรหัสเชื่อมต่อ</button>
+      <button class="config-btn" onclick="testLineNotification()">ทดสอบส่ง LINE</button>
+      <button class="config-btn cancel-btn" onclick="unlinkLine()">ยกเลิกการเชื่อมต่อ</button>
+    </div>
+
+    <div id="lineCodeBox" class="push-row" style="display:none; align-items:flex-start;">
+      <div style="width:100%;">
+        <div class="push-desc" style="margin-bottom:8px;">รหัสสำหรับส่งไปที่แชทบอท LINE:</div>
+        <div id="lineCodeText" class="push-status" style="font-size:1.2rem; font-weight:700;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- หน้า Profile -->
+  <div id="profilePage" class="page hidden">
+    <div class="camera-header">
+      <button class="back-btn" onclick="showHomePage()"><span class="btn-icon" aria-hidden="true">←</span><span class="btn-label">ย้อนกลับ</span></button>
+      <h2>Profile</h2>
+    </div>
+
+    <div class="profile-container">
+      <div class="profile-header">
+        <div class="profile-avatar">
+          <div class="avatar-placeholder">👤</div>
+        </div>
+        <h2 class="profile-name">Kamonrat</h2>
+      </div>
+
+      <div class="profile-menu">
+        <button class="profile-menu-item" onclick="showMyInformation()">
+          <span class="menu-icon">👤</span>
+          <span class="menu-text">My Information</span>
+          <span class="menu-arrow">></span>
+        </button>
+
+        <button class="profile-menu-item" onclick="showSystemConfigPage()">
+          <span class="menu-icon">⚙️</span>
+          <span class="menu-text">System Setting</span>
+          <span class="menu-arrow">></span>
+        </button>
+
+        <button class="profile-menu-item" onclick="showNotificationSettings()">
+          <span class="menu-icon">🔔</span>
+          <span class="menu-text">Notification Settings</span>
+          <span class="menu-arrow">></span>
+        </button>
+
+        <button class="profile-menu-item danger" onclick="logout()">
+          <span class="menu-icon">🚪</span>
+          <span class="menu-text">Logout</span>
+          <span class="menu-arrow">></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- หน้า System Config -->
+  <div id="systemConfigPage" class="page hidden">
+    <div class="camera-header">
+      <button class="back-btn" onclick="showProfilePage()"><span class="btn-icon" aria-hidden="true">←</span><span class="btn-label">ย้อนกลับ</span></button>
+      <h2>Pet Monitoring System</h2>
+    </div>
+
+    
+<div class="system-config-container">
+  <!-- Cat Selector (Global / Per-cat by color) -->
+  <div class="config-section">
+    <div class="section-header">
+      <div class="section-icon">🐾</div>
+      <div class="section-title">
+        <h3>เลือกแมวสำหรับตั้งค่า</h3>
+        <p>ถ้าเลือก "Global" จะเป็นค่ารวมของระบบ, ถ้าเลือกแมวจะเป็นค่าเฉพาะแมว (อิงจากสี)</p>
+      </div>
+    </div>
+    <div class="config-grid single-item">
+      <div class="config-item">
+        <div class="config-label">
+          <span class="label-icon">🎨</span>
+          <span class="label-text">Cat / Scope</span>
+        </div>
+        <div class="config-input-wrapper">
+          <select id="configCatSelect" class="config-input" onchange="loadSystemConfig()">
+            <option value="__global__">Global จะเป็นค่าเริ่มต้นของระบบ</option>
+          </select>
+        </div>
+        <p class="config-description"></p>
+      </div>
+    </div>
+  </div>
+
+      <!-- Monthly Stable Summary (>= 3 months same) -->
+      <div class="config-section" id="systemConfigSummarySection">
+        <div class="section-header">
+          <div class="section-icon">🧩</div>
+          <div class="section-title">
+            <h3>Summary ค่าเฉลี่ยจากการสรุปพฤติกกรม</h3>
+            <p></p>
+          </div>
+        </div>
+
+        <div id="systemConfigSummaryList" class="summary-list">
+          <div class="summary-empty">กำลังโหลด...</div>
+        </div>
+      </div>
+
+      <!-- Alert Settings Section -->
+      <div class="config-section">
+        <div class="section-header">
+          <div class="section-icon">🔔</div>
+          <div class="section-title">
+            <h3>Alert Settings</h3>
+            <p>ตั้งค่าการแจ้งเตือนเบื้องต้น</p>
+          </div>
+        </div>
+
+        <div class="config-grid">
+          <div class="config-item">
+            <div class="config-label">
+              <span class="label-icon">🐱</span>
+              <span class="label-text">Alert No Cat (hours)</span>
+            </div>
+            <div class="config-input-wrapper">
+              <input type="number" id="alertNoCat" class="config-input" value="12" min="1" max="48">
+              <span class="input-unit">ชั่วโมง</span>
+            </div>
+            <p class="config-description">จะส่งแจ้งเตือนเมื่อไม่พบแมวเป็นเวลานานเกินกว่าที่กำหนด</p>
+          </div>
+
+          <div class="config-item">
+            <div class="config-label">
+              <span class="label-icon">🍽️</span>
+              <span class="label-text">Alert No Eating (ครั้ง/วัน)</span>
+            </div>
+            <div class="config-input-wrapper">
+              <input type="number" id="alertNoEating" class="config-input" value="2" min="1" max="24">
+              <span class="input-unit">ครั้ง</span>
+            </div>
+            <p class="config-description">จะส่งแจ้งเตือนเมื่อแมวไม่กินอาหารตามจำนวนครั้งที่กำหนด</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Excretion Monitoring Section -->
+      <div class="config-section">
+        <div class="section-header">
+          <div class="section-icon">🚽</div>
+          <div class="section-title">
+            <h3>Excretion Monitoring</h3>
+            <p>ติดตามการขับถ่ายของแมว</p>
+          </div>
+        </div>
+
+        <div class="config-grid">
+          <div class="config-item">
+            <div class="config-label">
+              <span class="label-icon">⚠️</span>
+              <span class="label-text">Minimum Excretion (ครั้ง/วัน)</span>
+            </div>
+            <div class="config-input-wrapper">
+              <input type="number" id="minExcretion" class="config-input" value="3" min="1" max="10">
+              <span class="input-unit">ครั้ง</span>
+            </div>
+            <p class="config-description">จะแจ้งเตือนเมื่อแมวขับถ่ายน้อยกว่าค่าที่กำหนด</p>
+          </div>
+
+          <div class="config-item">
+            <div class="config-label">
+              <span class="label-icon">⚠️</span>
+              <span class="label-text">Maximum Excretion (ครั้ง/วัน)</span>
+            </div>
+            <div class="config-input-wrapper">
+              <input type="number" id="maxExcretion" class="config-input" value="5" min="1" max="20">
+              <span class="input-unit">ครั้ง</span>
+            </div>
+            <p class="config-description">จะแจ้งเตือนเมื่อแมวขับถ่ายมากเกินกว่าค่าที่กำหนดต่อวัน</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ✅ ตัด Sleep Monitoring Section ออกทั้งหมด -->
+
+      <!-- System Limits Section -->
+      <div class="config-section">
+        <div class="section-header">
+          <div class="section-icon">🔧</div>
+          <div class="section-title">
+            <h3>System Limits</h3>
+            <p>ขีดจำกัดของระบบ</p>
+          </div>
+        </div>
+
+        <div class="config-grid single-item">
+          <div class="config-item">
+            <div class="config-label">
+              <span class="label-icon">📊</span>
+              <span class="label-text">Maximum Supported Cats</span>
+            </div>
+            <div class="config-input-wrapper">
+              <input type="number" id="maxCats" class="config-input" value="10" min="1" max="50">
+              <span class="input-unit">ตัว</span>
+            </div>
+            <p class="config-description">จำนวนแมวสูงสุดที่ระบบสามารถติดตามได้ในเวลาเดียวกัน</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="config-actions">
+        <button class="config-btn save-btn" onclick="saveSystemConfig()">บันทึกการตั้งค่า</button>
+        <button class="config-btn cancel-btn" onclick="resetSystemConfig()">รีเซ็ตเป็นค่าเริ่มต้น</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="/script.js?v=20260316_camfix5"></script>
+  <!-- auth.js is for login.html only (avoid redirect loops on app page) -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+</body>
+
+</html>

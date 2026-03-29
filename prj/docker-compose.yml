@@ -1,0 +1,64 @@
+services:
+  app:
+    build: .
+    container_name: petmon_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8080
+      FLASK_DEBUG: ${FLASK_DEBUG:-0}
+      DISABLE_IN_APP_SCHEDULER: 1
+      TZ: Asia/Bangkok
+      DB_TIME_ZONE_OFFSET: "+07:00"
+
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      DB_NAME: ${DB_NAME:-pet_monitoring}
+
+      STREAM_PROVIDER: ${STREAM_PROVIDER:-go2rtc}
+      GO2RTC_BASE_URL: ${GO2RTC_BASE_URL:-http://go2rtc:1984}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/app
+    depends_on:
+      - go2rtc
+    command: sh -c "gunicorn -w 1 -k gthread -b 0.0.0.0:8080 --timeout 0 --graceful-timeout 30 --keep-alive 75 --access-logfile - --error-logfile - app:app"
+
+  worker:
+    build: .
+    container_name: petmon_worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DISABLE_IN_APP_SCHEDULER: 1
+      TZ: Asia/Bangkok
+      DB_TIME_ZONE_OFFSET: "+07:00"
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      DB_NAME: ${DB_NAME:-pet_monitoring}
+      REALTIME_ALERT_INTERVAL_SECONDS: ${REALTIME_ALERT_INTERVAL_SECONDS:-60}
+      DAILY_ALERT_HOUR: ${DAILY_ALERT_HOUR:-23}
+      DAILY_ALERT_MINUTE: ${DAILY_ALERT_MINUTE:-59}
+    volumes:
+      - ./:/app
+    command: sh -c "python worker.py"
+
+  go2rtc:
+    image: alexxit/go2rtc:latest
+    container_name: petmon_go2rtc
+    restart: unless-stopped
+    ports:
+      - "1984:1984"
+      - "8554:8554"
+      - "8555:8555/tcp"
+      - "8555:8555/udp"
+    volumes:
+      - ./go2rtc.yaml:/config/go2rtc.yaml:ro

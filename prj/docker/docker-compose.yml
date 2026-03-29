@@ -1,0 +1,92 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: petmon_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-pet_monitoring}
+      TZ: Asia/Bangkok
+    ports:
+      - "3307:3306"   
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    container_name: petmon_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Flask
+      HOST: 0.0.0.0
+      PORT: 8080
+      FLASK_DEBUG: ${FLASK_DEBUG:-0}
+      DISABLE_IN_APP_SCHEDULER: 1
+      TZ: Asia/Bangkok
+      DB_TIME_ZONE_OFFSET: "+07:00"
+
+      # DB (connect to the db service)
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      DB_NAME: ${DB_NAME:-pet_monitoring}
+
+      # Web Push
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@example.com}
+
+      # App secret
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      - ./Colorcat/uploads:/app/Colorcat/uploads
+      - ./vapid_keys.json:/app/vapid_keys.json
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+
+  worker:
+    build: .
+    container_name: petmon_worker
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      DB_NAME: ${DB_NAME:-pet_monitoring}
+      REALTIME_ALERT_INTERVAL_SECONDS: ${REALTIME_ALERT_INTERVAL_SECONDS:-60}
+      DAILY_ALERT_HOUR: ${DAILY_ALERT_HOUR:-23}
+      DAILY_ALERT_MINUTE: ${DAILY_ALERT_MINUTE:-59}
+      TZ: Asia/Bangkok
+      DB_TIME_ZONE_OFFSET: "+07:00"
+      DISABLE_IN_APP_SCHEDULER: 1
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@example.com}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
+      LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN:-}
+      LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET:-}
+      LINE_OA_USER_ID: ${LINE_OA_USER_ID:-}
+      BASE_URL: ${BASE_URL:-}
+    volumes:
+      - ./Colorcat/uploads:/app/Colorcat/uploads
+      - ./vapid_keys.json:/app/vapid_keys.json
+    command: sh -c "python worker.py"
+
+volumes:
+  db_data:
